@@ -4538,7 +4538,7 @@ local rawData = [[
 4534|1.41|10.37|1.41|0.00|154.58|0.00|false|false
 4535|1.41|10.37|1.41|0.00|154.58|0.00|false|false
 ]]
--- ===== ТЕЛЕПОРТ КАЖДЫЙ КАДР (БЕГ + ПРЫЖОК) =====
+-- ===== ТЕЛЕПОРТ + ПОВОРОТ + БЕГ (анимация) + ПРЫЖОК =====
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -4555,8 +4555,8 @@ for line in rawData:gmatch("[^\n]+") do
         local y = tonumber(parts[3])
         local z = tonumber(parts[4])
         local angle = tonumber(parts[6])
-        local run  = (parts[8] == "true")   -- 8-е поле = бег
-        local jump = (parts[9] == "true")   -- 9-е поле = прыжок
+        local run = (parts[8] == "true")   -- 8-е = бег
+        local jump = (parts[9] == "true")  -- 9-е = прыжок
         if x and y and z and angle then
             table.insert(points, {
                 pos = Vector3.new(x, y, z),
@@ -4580,16 +4580,22 @@ RunService.Heartbeat:Connect(function()
     
     local p = points[index]
     
-    -- Телепорт + поворот
+    -- ТЕЛЕПОРТ + ПОВОРОТ
     hrp.CFrame = CFrame.new(p.pos) * CFrame.Angles(0, p.angle, 0)
     
-    -- Прыжок (9-е поле)
+    -- ПРЫЖОК (9-е поле)
     if p.jump then
         humanoid:Jump()
     end
     
-    -- Бег (8-е поле) – меняем скорость, хотя при телепорте это не влияет
-    humanoid.WalkSpeed = p.run and 24 or 16
+    -- БЕГ (8-е поле) – включаем анимацию бега
+    if p.run then
+        humanoid.WalkSpeed = 24          -- скорость бега
+        humanoid:ChangeState(Enum.HumanoidStateType.Running)  -- принудительно включаем анимацию
+    else
+        humanoid.WalkSpeed = 16          -- обычная скорость
+        humanoid:ChangeState(Enum.HumanoidStateType.Running)  -- тоже включаем, но с меньшей скоростью (идти)
+    end
     
     index = index + 1
 end)
