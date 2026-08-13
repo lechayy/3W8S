@@ -25180,27 +25180,32 @@ local rawData = [[
 25179|-1436.71|-159.45|-1005.99|0.00|0.98|0.00|false|false
 ]]
 
--- ========== ПАРСИМ В ТАБЛИЦУ ==========
-local path = {}
+-- ===== ТЕЛЕПОРТ КАЖДЫЙ КАДР =====
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+
+-- Парсим точки из rawData (она уже есть в файле)
+local points = {}
 for line in rawData:gmatch("[^\n]+") do
-    if line:match("^%d+") then  -- строки, начинающиеся с номера
-        local x, y, z, jump, run = line:match("([^|]+)|([^|]+)|([^|]+)|.-|.-|.-|([^|]+)|([^|]+)")
-        -- берём 1-е, 2-е, 3-е поля (x,y,z) и 8-е (jump), 9-е (run)
-        if x then
-            table.insert(path, {
-                x = tonumber(x),
-                y = tonumber(y),
-                z = tonumber(z),
-                jump = (jump == "true"),
-                run  = (run == "true")
-            })
+    if line:match("^%d+") then
+        local parts = {}
+        for p in line:gmatch("[^|]+") do table.insert(parts, p) end
+        local x, y, z = tonumber(parts[2]), tonumber(parts[3]), tonumber(parts[4])
+        if x and y and z then
+            table.insert(points, Vector3.new(x, y, z))
         end
     end
 end
 
--- ========== ИСПОЛЬЗУЙ ==========
-print("Загружено точек: " .. #path)
-for i, p in ipairs(path) do
-    -- тут твой код движения
-    print(p.x, p.y, p.z, p.jump, p.run)
-end
+local index = 1
+RunService.Heartbeat:Connect(function()
+    if not hrp or not hrp.Parent then return end
+    hrp.CFrame = CFrame.new(points[index])
+    index = index + 1
+    if index > #points then
+        index = 1  -- зацикливание (если нужно – убери)
+    end
+end)
