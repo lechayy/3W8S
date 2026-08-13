@@ -4538,33 +4538,56 @@ local rawData = [[
 4534|1.41|10.37|1.41|0.00|154.58|0.00|false|false
 4535|1.41|10.37|1.41|0.00|154.58|0.00|false|false
 ]]
-
--- ===== ТЕЛЕПОРТ КАЖДЫЙ КАДР =====
+-- ===== ТЕЛЕПОРТ КАЖДЫЙ КАДР С ПОВОРОТОМ И ПРЫЖКОМ (ОДИН ПРОХОД) =====
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local hrp = char:WaitForChild("HumanoidRootPart")
+local humanoid = char:WaitForChild("Humanoid")
 
--- Парсим точки из rawData (она уже есть в файле)
+-- Парсим точки с углами и флагами
 local points = {}
 for line in rawData:gmatch("[^\n]+") do
     if line:match("^%d+") then
         local parts = {}
         for p in line:gmatch("[^|]+") do table.insert(parts, p) end
-        local x, y, z = tonumber(parts[2]), tonumber(parts[3]), tonumber(parts[4])
-        if x and y and z then
-            table.insert(points, Vector3.new(x, y, z))
+        local x = tonumber(parts[2])
+        local y = tonumber(parts[3])
+        local z = tonumber(parts[4])
+        local angle = tonumber(parts[6])   -- угол в градусах
+        local jump = (parts[8] == "true")
+        -- run = parts[9] (не используем)
+        if x and y and z and angle then
+            table.insert(points, {
+                pos = Vector3.new(x, y, z),
+                angle = math.rad(angle),  -- переводим в радианы для Roblox
+                jump = jump
+            })
         end
     end
 end
 
+print("Загружено точек: " .. #points)
+
 local index = 1
 RunService.Heartbeat:Connect(function()
     if not hrp or not hrp.Parent then return end
-    hrp.CFrame = CFrame.new(points[index])
-    index = index + 1
     if index > #points then
-        index = 1  -- зацикливание (если нужно – убери)
+        print("Маршрут завершён!")
+        return
     end
+    
+    local p = points[index]
+    
+    -- Устанавливаем позицию и поворот (только по оси Y)
+    local cf = CFrame.new(p.pos) * CFrame.Angles(0, p.angle, 0)
+    hrp.CFrame = cf
+    
+    -- Если нужен прыжок
+    if p.jump then
+        humanoid:Jump()
+    end
+    
+    index = index + 1
 end)
