@@ -4538,7 +4538,7 @@ local rawData = [[
 4534|1.41|10.37|1.41|0.00|154.58|0.00|false|false
 4535|1.41|10.37|1.41|0.00|154.58|0.00|false|false
 ]]
--- ===== ТЕЛЕПОРТ КАЖДЫЙ КАДР С ПОВОРОТОМ И ПРЫЖКОМ (ОДИН ПРОХОД) =====
+-- ===== ТЕЛЕПОРТ КАЖДЫЙ КАДР С ПОВОРОТОМ, ПРЫЖКОМ И БЕГОМ =====
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -4546,7 +4546,7 @@ local char = player.Character or player.CharacterAdded:Wait()
 local hrp = char:WaitForChild("HumanoidRootPart")
 local humanoid = char:WaitForChild("Humanoid")
 
--- Парсим точки с углами и флагами
+-- Парсим точки
 local points = {}
 for line in rawData:gmatch("[^\n]+") do
     if line:match("^%d+") then
@@ -4555,14 +4555,15 @@ for line in rawData:gmatch("[^\n]+") do
         local x = tonumber(parts[2])
         local y = tonumber(parts[3])
         local z = tonumber(parts[4])
-        local angle = tonumber(parts[6])   -- угол в градусах
+        local angle = tonumber(parts[6])
         local jump = (parts[8] == "true")
-        -- run = parts[9] (не используем)
+        local run = (parts[9] == "true")
         if x and y and z and angle then
             table.insert(points, {
                 pos = Vector3.new(x, y, z),
-                angle = math.rad(angle),  -- переводим в радианы для Roblox
-                jump = jump
+                angle = math.rad(angle),
+                jump = jump,
+                run = run
             })
         end
     end
@@ -4571,6 +4572,8 @@ end
 print("Загружено точек: " .. #points)
 
 local index = 1
+local normalSpeed = 16  -- стандартная скорость
+
 RunService.Heartbeat:Connect(function()
     if not hrp or not hrp.Parent then return end
     if index > #points then
@@ -4580,13 +4583,20 @@ RunService.Heartbeat:Connect(function()
     
     local p = points[index]
     
-    -- Устанавливаем позицию и поворот (только по оси Y)
+    -- Телепорт + поворот
     local cf = CFrame.new(p.pos) * CFrame.Angles(0, p.angle, 0)
     hrp.CFrame = cf
     
-    -- Если нужен прыжок
+    -- Прыжок
     if p.jump then
-        humanoid:Jump()
+        humanoid:Jump()   -- правильный вызов метода
+    end
+    
+    -- Бег (устанавливаем скорость, но при телепорте она не влияет, однако оставим для порядка)
+    if p.run then
+        humanoid.WalkSpeed = 24   -- скорость бега
+    else
+        humanoid.WalkSpeed = normalSpeed
     end
     
     index = index + 1
